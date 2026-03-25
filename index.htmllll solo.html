@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FindMyBook — Premium Library Experience</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style>
+/* ===================== ROOT ===================== */
+:root{
+    --bg:#f6f3ef;
+    --card:#ffffff;
+    --text:#2b2b2b;
+    --muted:#6b6b6b;
+    --accent:#8b5e3c;
+    --shadow:0 10px 30px rgba(0,0,0,0.06);
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    scroll-behavior:smooth;
+    font-family: "Segoe UI", sans-serif;
+}
+
+body{
+    background:var(--bg);
+    color:var(--text);
+}
+
+/* ===================== NAV ===================== */
+nav{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    background:white;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:15px 40px;
+    box-shadow:var(--shadow);
+    z-index:1000;
+}
+
+nav h1{
+    font-size:20px;
+    color:var(--accent);
+    letter-spacing:1px;
+}
+
+nav ul{
+    display:flex;
+    gap:25px;
+    list-style:none;
+}
+
+nav ul li{
+    cursor:pointer;
+    color:var(--muted);
+    transition:0.3s;
+}
+
+nav ul li:hover{
+    color:var(--accent);
+}
+
+/* ===================== HERO ===================== */
+.hero{
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:0 20px;
+    background:linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f') center/cover;
+    color:white;
+}
+
+.hero-content h2{
+    font-size:48px;
+    margin-bottom:15px;
+}
+
+.hero-content p{
+    font-size:18px;
+    opacity:0.9;
+}
+
+.hero-content button{
+    margin-top:25px;
+    padding:12px 25px;
+    border:none;
+    background:var(--accent);
+    color:white;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+/* ===================== FEATURES ===================== */
+.section{
+    padding:80px 60px;
+}
+
+.section-title{
+    font-size:28px;
+    margin-bottom:30px;
+}
+
+.features{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:var(--card);
+    padding:25px;
+    border-radius:15px;
+    box-shadow:var(--shadow);
+    transition:0.3s;
+}
+
+.card:hover{
+    transform:translateY(-5px);
+}
+
+.card h3{
+    margin-bottom:10px;
+    color:var(--accent);
+}
+
+.card p{
+    color:var(--muted);
+    font-size:14px;
+}
+
+/* ===================== SEARCH ===================== */
+.search-box{
+    display:flex;
+    gap:10px;
+    max-width:600px;
+    margin:0 auto 40px auto;
+}
+
+.search-box input{
+    flex:1;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    box-shadow:var(--shadow);
+}
+
+.search-box button{
+    padding:15px 20px;
+    border:none;
+    background:var(--accent);
+    color:white;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+/* ===================== RESULTS ===================== */
+.results{
+    display:flex;
+    gap:20px;
+    overflow-x:auto;
+    padding-bottom:10px;
+}
+
+.result-card{
+    min-width:250px;
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:var(--shadow);
+}
+
+/* ===================== MAP ===================== */
+#map{
+    height:450px;
+    border-radius:15px;
+    box-shadow:var(--shadow);
+}
+
+/* ===================== BOOKING ===================== */
+.booking{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:var(--shadow);
+}
+
+.booking input,
+.booking select{
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    box-shadow:var(--shadow);
+}
+
+.booking button{
+    padding:12px 20px;
+    background:var(--accent);
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+}
+<!-- DASHBOARD -->
+<section class="section" id="dashboard">
+    <h2 class="section-title">Your Dashboard</h2>
+    <p><b>User:</b> <span id="userName"></span></p>
+
+    <h3>Your Bookings</h3>
+    <div id="bookingList"></div>
+</section>
+/* ===================== FOOTER ===================== */
+footer{
+    text-align:center;
+    padding:40px;
+    color:var(--muted);
+}
+</style>
+</head>
+
+<body>
+    
+<!-- AUTH SECTION -->
+<div id="authSection" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#f6f3ef; display:flex; align-items:center; justify-content:center; z-index:2000;">
+
+    <!-- LOGIN -->
+    <div id="loginBox" style="background:white; padding:30px; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+        <h2>Login</h2>
+        <input id="loginUser" placeholder="Username" style="display:block; margin:10px 0; padding:10px; width:250px;">
+        <input id="loginPass" type="password" placeholder="Password" style="display:block; margin:10px 0; padding:10px; width:250px;">
+        <button onclick="login()">Login</button>
+        <p style="margin-top:10px;">New user? 
+            <span onclick="showSignup()" style="color:blue; cursor:pointer;">Sign Up</span>
+        </p>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signupBox" style="display:none; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+        <h2>Sign Up</h2>
+        <input id="signupUser" placeholder="Username" style="display:block; margin:10px 0; padding:10px;">
+        <input id="signupPass" type="password" placeholder="Password" style="display:block; margin:10px 0; padding:10px;">
+        <input id="signupContact" placeholder="Email or Mobile" style="display:block; margin:10px 0; padding:10px;">
+        <button onclick="signup()">Create Account</button>
+    </div>
+
+</div>
+
+<!-- NAV -->
+<nav>
+    <h1>📚 FindMyBook</h1>
+    <ul>
+        <li onclick="scrollToSection('features')">Features</li>
+        <li onclick="scrollToSection('search')">Search</li>
+        <li onclick="scrollToSection('map')">Map</li>
+        <li onclick="scrollToSection('booking')">Booking</li>
+    </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-content">
+        <h2>Discover Books. Reserve Spaces. Study Better.</h2>
+        <p>A modern library system built for students who want speed, simplicity, and access.</p>
+        <button onclick="scrollToSection('features')">Explore Now</button>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+    <h2 class="section-title">Why FindMyBook?</h2>
+    <div class="features">
+        <div class="card">
+            <h3> Massive Library</h3>
+            <p>Access thousands of academic and general books instantly.</p>
+        </div>
+        <div class="card">
+            <h3> Fast Search</h3>
+            <p>Search books using intelligent structured queries.</p>
+        </div>
+        <div class="card">
+            <h3> Nearby Libraries</h3>
+            <p>Find libraries closest to your location in real time.</p>
+        </div>
+        <div class="card">
+            <h3> Seat Booking</h3>
+            <p>Reserve your study seat with a single click.</p>
+        </div>
+    </div>
+</section>
+
+<!-- SEARCH -->
+<section class="section" id="search">
+    <h2 class="section-title">Search Books</h2>
+
+    <div class="search-box">
+        <input id="searchInput" placeholder="Search Data Structures, Algorithms, AI..." />
+        <button onclick="searchBooks()">Search</button>
+    </div>
+
+    <div class="results" id="results"></div>
+</section>
+
+<!-- MAP -->
+<section class="section" id="mapSection">
+    <h2 class="section-title">Nearby Libraries</h2>
+    <div id="map"></div>
+</section>
+
+<!-- BOOKING -->
+<section class="section" id="booking">
+    <h2 class="section-title">Book Study Seat</h2>
+
+    <div class="booking">
+        <input placeholder="Library ID" />
+        <input type="date" />
+        <select>
+            <option>09:00-11:00</option>
+            <option>11:00-13:00</option>
+            <option>14:00-16:00</option>
+        </select>
+       <button onclick="bookSeat()">Book</button>
+    </div>
+</section>
+
+<footer>
+    Made with ❤️ for Students | FindMyBook
+</footer>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    // ===================== USER SYSTEM =====================
+let users = [];
+let currentUser = null;
+let bookings = {};
+
+function showSignup(){
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('signupBox').style.display = 'block';
+}
+
+function signup(){
+    const u = document.getElementById('signupUser').value;
+    const p = document.getElementById('signupPass').value;
+    const c = document.getElementById('signupContact').value;
+
+    users.push({username:u, password:p, contact:c});
+    bookings[u] = [];
+
+    alert("Account created! Please login.");
+
+    document.getElementById('signupBox').style.display = 'none';
+    document.getElementById('loginBox').style.display = 'block';
+}
+
+function login(){
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+
+    const found = users.find(x => x.username===u && x.password===p);
+
+    if(!found){
+        alert("User not found! Please sign up first.");
+        return;
+    }
+
+    currentUser = u;
+    document.getElementById('authSection').style.display = 'none';
+
+    updateDashboard();
+}
+function updateDashboard(){
+    document.getElementById('userName').innerText = currentUser;
+
+    const div = document.getElementById('bookingList');
+    div.innerHTML = '';
+
+    if(bookings[currentUser].length === 0){
+        div.innerHTML = "<p>No bookings yet</p>";
+        return;
+    }
+
+    bookings[currentUser].forEach(b => {
+        div.innerHTML += `<div class="card">${b}</div>`;
+    });
+}
+function bookSeat(){
+    if(!currentUser){
+        alert("Please login first!");
+        return;
+    }
+
+    const booking = "Study Seat Booked (Demo Slot)";
+    bookings[currentUser].push(booking);
+
+    alert("Seat booked successfully!");
+    updateDashboard();
+}
+function rentBook(book){
+    if(!currentUser){
+        alert("Please login first!");
+        return;
+    }
+
+    bookings[currentUser].push(book + " rented");
+    alert("Book rented!");
+    updateDashboard();
+}
+// ===================== SMOOTH SCROLL =====================
+function scrollToSection(id){
+    document.getElementById(id).scrollIntoView({behavior:'smooth'});
+}
+
+// ===================== DEMO DATA =====================
+const demoBooks = [
+    {title:"Data Structures", author:"Mark Allen"},
+    {title:"Algorithms", author:"CLRS"},
+    {title:"Artificial Intelligence", author:"Russell"}
+];
+
+function searchBooks(){
+    const container = document.getElementById('results');
+    container.innerHTML = '';
+
+    demoBooks.forEach(book=>{
+        const div = document.createElement('div');
+        div.className='result-card';
+       div.innerHTML = `
+<h3>${book.title}</h3>
+<p>${book.author}</p>
+<button onclick="rentBook('${book.title}')">Rent</button>
+`;
+        container.appendChild(div);
+    });
+}
+
+// ===================== MAP =====================
+const map = L.map('map').setView([30.3165,78.0322],13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+const libraries = [
+    {name:"Central Library",lat:30.3165,lng:78.0322},
+    {name:"City Library",lat:30.31,lng:78.02}
+];
+
+libraries.forEach(lib=>{
+    L.marker([lib.lat,lib.lng]).addTo(map).bindPopup(lib.name);
+});
+</script>
+
+</body>
+</html>
